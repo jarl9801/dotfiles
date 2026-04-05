@@ -1,0 +1,8 @@
+# Never commit secrets
+*.key
+*.pem
+*credentials*
+*secret*
+*token*
+.env
+.env.*

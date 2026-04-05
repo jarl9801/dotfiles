@@ -1,0 +1,6 @@
+anthropic.claude-code
+github.copilot-chat
+ms-azuretools.vscode-containers
+ms-vscode-remote.remote-containers
+pablodelucca.pixel-agents
+supabase.vscode-supabase-extension

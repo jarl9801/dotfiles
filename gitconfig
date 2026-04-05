@@ -1,0 +1,11 @@
+[user]
+	name = jarl9804
+	email = ingandres89@gmail.com
+[init]
+	defaultBranch = main
+[core]
+	editor = code --wait
+[merge]
+	tool = vscode
+[diff]
+	tool = vscode
