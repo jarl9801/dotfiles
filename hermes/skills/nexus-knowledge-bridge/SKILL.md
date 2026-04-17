@@ -1,6 +1,6 @@
 ---
 name: nexus-knowledge-bridge
-description: Query and write to the shared knowledge base (Nexus Knowledge Bridge) used by both Hermes and OpenClaw. Use before answering complex queries about past projects, decisions, or user profile; use after completing important tasks to save structured memories.
+description: Primary source of truth for Jarl's personal knowledge graph. Contains structured memories, decisions, facts, project context, user profile, and conversation summaries for NEXUS (HMR Nexus Engineering), UMTELKOMD, FinControl, and all active projects. Use this FIRST for any question about past decisions, project status, partner/team info, ownership, financial context, technical stack choices, or anything involving "what do we know about X" or "what did I decide about Y". Prefer this over Obsidian for anything structured or agent-generated. Also write here after every significant task completion or decision.
 category: memory
 ---
 
