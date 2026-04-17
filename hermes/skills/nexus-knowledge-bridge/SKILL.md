@@ -130,7 +130,7 @@ curl -s -X POST ${NEXUS_BRIDGE_URL:-http://localhost:8000}/memory/write \
 
 **Required fields:** `source`, `memory_type`, `title`, `summary`
 **Recommended:** `facts` (array), `tags` (array), `project_id`, `confidence` (0.0–1.0)
-**Valid `memory_type`:** `profile`, `project_context`, `decision`, `fact`, `preference`, `skill`, `conversation_summary`, `general``
+**Valid `memory_type`:** `profile`, `project_context`, `decision`, `fact`, `preference`, `skill`, `conversation_summary`, `general`
 
 ### Get user profile
 
