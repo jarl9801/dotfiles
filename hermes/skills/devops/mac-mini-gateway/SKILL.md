@@ -1,72 +1,107 @@
 ---
 name: mac-mini-gateway
-description: Mac mini "Mac" as Hermes gateway — SSH access, Tailscale IP, troubleshooting
+description: Mac mini M4 as always-on home server running Hermes, OpenClaw, and Nexus Knowledge Bridge — SSH access, Tailscale, service management, troubleshooting
 category: devops
 ---
 
-# Mac Mini Gateway Access — Hermes
+# Mac Mini Gateway — Home Server for Hermes Stack
 
 ## Context
 
-Mac mini "Mac" at Jarl's home office (Celle). Used as gateway for Hermes agent and Tailscale exit node.
+Mac mini M4 (24 GB RAM) in Jarl's home office (Celle area, Germany). Always-on home server and Tailscale exit node. Runs the full agent stack.
 
-## Connection Details
+## Connection
 
 | Property | Value |
 |---|---|
 | Local hostname | `Mac` (Bonjour/mDNS) |
-| Tailscale IP | `100.64.65.5` |
-| SSH command | `ssh mini` (local) or `ssh 100.64.65.5` (remote/Tailscale) |
-| Tailscale MagicDNS | `mini.tailnetname` (check actual suffix in Tailscale admin) |
+| SSH alias | `ssh mini` (configured in `~/.ssh/config`) |
+| Tailscale IP | `100.108.69.7` |
+| User | `jarl` |
+| Home directory | `/Users/jarl` |
 
-## Access Patterns
+**From same network:** `ssh mini`
+**From anywhere via Tailscale:** `ssh mini` (alias points to Tailscale IP)
 
-**From within the same network (local):**
-```bash
-ssh mini
-```
+## Services
 
-**From outside via Tailscale (remote):**
-```bash
-ssh 100.64.65.5
-```
-Tailscale must be installed and logged in on the remote machine.
+| Service | Port | Launchd label | Purpose |
+|---|---|---|---|
+| Hermes gateway | — | `ai.hermes.gateway` | Primary agent gateway |
+| OpenClaw gateway | 18789 | `ai.openclaw.gateway` | Multi-agent fleet coordinator |
+| OpenClaw node | — | `ai.openclaw.node` | Remote node worker |
+| Nexus Knowledge Bridge | 8000 | `ai.nexus.bridge` | Shared memory layer (FastAPI + SQLite + Chroma) |
+| Ollama | 11434 | `com.ollama.ollama` | Local LLMs + embeddings (nomic-embed-text) |
 
-## What runs on the Mac mini
+## Restart a Service
 
-- Hermes agent (`claude --acp --stdio`) for Telegram gateway
-- Manim venv: `/tmp/manim_venv`
-- LaTeX: NOT installed (requires sudo)
-- Tailscale: exits via this machine
+Standard pattern for any of the services above:
+
+    launchctl kickstart -k "gui/$(id -u)/<LABEL>"
+
+Examples:
+
+    # Hermes
+    launchctl kickstart -k "gui/$(id -u)/ai.hermes.gateway"
+
+    # Nexus Knowledge Bridge
+    launchctl kickstart -k "gui/$(id -u)/ai.nexus.bridge"
+
+## Quick Status Check
+
+One-liner to run from any machine via SSH:
+
+    ssh mini '
+      echo "=== Launchd services ==="
+      launchctl list | grep -E "ai\.(hermes|openclaw|nexus)|com\.ollama"
+      echo ""
+      echo "=== Ports listening ==="
+      lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null | grep -E ":(8000|18789|11434) "
+      echo ""
+      echo "=== Knowledge Bridge health ==="
+      curl -s http://localhost:8000/health
+      echo ""
+      echo "=== Bridge stats ==="
+      curl -s http://localhost:8000/stats
+    '
 
 ## Troubleshooting
 
-**"Could not resolve hostname mini":**
-→ Mac mini is not on the same local network, or hostname not broadcast
-→ Try Tailscale IP: `ssh 100.64.65.5`
+**`ssh mini` gives "Connection timed out":**
+- Mac mini may be off, or Tailscale down on the mini
+- Need physical access to power on / open Tailscale menu bar app
+- Tailscale CLI (when reachable): `/Applications/Tailscale.app/Contents/MacOS/Tailscale up`
 
-**Connection timed out on 100.64.65.5:**
-→ Mac mini is off or Tailscale disconnected
-→ Cannot restart Hermes remotely — user must physically power on the Mac
-→ Check Tailscale admin console for device status
+**Nexus Bridge not responding (`curl http://mini:8000` fails):**
+- Check service: `ssh mini 'launchctl list | grep nexus'` — look for pid greater than 0
+- Kickstart: `ssh mini 'launchctl kickstart -k "gui/$(id -u)/ai.nexus.bridge"'`
+- Logs: `ssh mini 'tail -50 ~/Dev/nexus-knowledge-bridge/logs/bridge.err.log'`
 
-**Restart Hermes via SSH (when reachable):**
-```bash
-ssh mini "pkill -f hermes; nohup hermes --daemon &"  # or appropriate restart cmd
-```
+**OpenClaw gateway down:**
+- `ssh mini 'launchctl kickstart -k "gui/$(id -u)/ai.openclaw.gateway"'`
+- Verify: `curl http://100.108.69.7:18789/health`
 
-## Useful Commands on Mac Mini
+**Hermes process exists but unresponsive:**
+- `ssh mini 'launchctl kickstart -k "gui/$(id -u)/ai.hermes.gateway"'`
+- Logs: `ssh mini 'tail -50 ~/.hermes/logs/gateway.log'`
 
-```bash
-# Check Hermes/gateway status
-ps aux | grep -E 'hermes|claude'
+**Tailscale shows IP 0.0.0.0 or "Stopped":**
+- Open the app from menu bar → Connect
+- Or: `/Applications/Tailscale.app/Contents/MacOS/Tailscale up`
 
-# Restart Hermes service
-launchctl kickstart -k gui/$(id -u)/homebrew.mxcl.hermes
+## File Locations on Mac Mini
 
-# Check if Tailscale is up
-tailscale status
+| What | Path |
+|---|---|
+| Hermes config | `~/.hermes/config.yaml` (symlink → `~/Dev/dotfiles/hermes/config.yaml`) |
+| Hermes skills | `~/.hermes/skills/skills/` (symlink → `~/Dev/dotfiles/hermes/skills/`) |
+| Hermes state DB | `~/.hermes/state.db` |
+| Hermes sessions | `~/.hermes/sessions/` |
+| Knowledge Bridge code | `~/Dev/nexus-knowledge-bridge/` |
+| Knowledge Bridge data | `~/Dev/nexus-knowledge-bridge/data/knowledge.db` + `data/chroma_vectors_clean/` |
+| Knowledge Bridge logs | `~/Dev/nexus-knowledge-bridge/logs/bridge.*.log` |
+| Dotfiles repo | `~/Dev/dotfiles/` (github.com/jarl9801/dotfiles) |
 
-# Manim animation rendering
-source /tmp/manim_venv/bin/activate && manim ...
-```
+## Known Issues
+
+- `ai.openclaw.node` was last seen with exit status `1` (failed). Investigate when time permits: `launchctl print "gui/$(id -u)/ai.openclaw.node"` and check logs.s
