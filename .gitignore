@@ -6,3 +6,7 @@
 *token*
 .env
 .env.*
+
+# Backups locales de limpieza, nunca commitear
+hermes/skills/.openclaw-imports.bak/
+hermes/skills/.backup-*
